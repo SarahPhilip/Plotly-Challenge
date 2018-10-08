@@ -1,138 +1,125 @@
-// function buildMetadata(sample) {
+function buildMetadata(sample) {
 
-//   // @TODO: Complete the following function that builds the metadata panel
+  // @TODO: Complete the following function that builds the metadata panel
+  // Use `d3.json` to fetch the metadata for a sample
 
-//   // Use `d3.json` to fetch the metadata for a sample
-//   // Use d3 to select the panel with id of `#sample-metadata`
-//   /* data route */
-//   var url = "/metadata/" + sample;
+  d3.json(`/metadata/${sample}`).then(function(response) {
+    var sampleMD = d3.select("#sample-metadata")
+    sampleMD.html("")
+    var table = sampleMD.append("table");
+    Object.entries(response).forEach(([key, value]) => {
+      var row = table.append("tr");
+      var cell = row.append("td").text(key+": "+value).append("br")
+      if (key === "WFREQ") {
+        console.log(value);
+        buildGauge(value);
+      };
+    });
+    // Use d3 to select the panel with id of `#sample-metadata` 
+    // Use `.html("") to clear any existing metadata
+    // Use `Object.entries` to add each key and value pair to the panel
+    // Hint: Inside the loop, you will need to use d3 to append new
+    // tags for each key-value in the metadata.
 
-//   d3.json(url).then(function(response) {
-//     console.log(response);
-
-//     // Use `.html("") to clear any existing metadata
-//     d3.select("#sample-metadata").html("");
-
-//     // Use `Object.entries` to add each key and value pair to the panel
-//     Object.entries(response).forEach(([key, value]) => {
-//       console.log(`${key}: ${value}`);
-        
-//       // Inside the loop, use d3 to append new tags for each key-value in the metadata.
-//       d3.select("#sample-metadata")
-//         .append()
-//         .text(`${key}: ${value}`)
-//         .append("br")
-      
-//     });
-
-//   });
-
-// }
-
-// function buildCharts(sample) {
-
-//   // @TODO: Use `d3.json` to fetch the sample data for the plots
-//   var url = "/samples/" + sample;
-
-//   d3.json(url).then(function(response) {
-
-//     console.log(response);
+    // BONUS: Build the Gauge Chart
+    //console.log(sample.WFREQ.value)
+    //buildGauge(sample.WFREQ);
+  });
+}
 
 
-//     // @TODO: Build a Bubble Chart using the sample data
-//     // create trace and layout for bubble chart
-//     var trace1 = {
-//       x: response.otu_ids,
-//       y: response.sample_values,
-//       text: response.otu_labels,
-//       mode: "markers",
-//       marker: {
-//         size: response.sample_values,
-//         color: response.otu_ids
-//       }
-//     };
-
-//     var data1 = [trace1];
-
-//     var layout1 = {
-//       xaxis: {
-//         title: "OTU ID"
-//       }
-//     };
-
-//     // Plot bubble chart in 'bubble' id
-//     Plotly.newPlot("bubble", data1, layout1);
-
-//     // @TODO: Build a Pie Chart
-//     // HINT: You will need to use slice() to grab the top 10 sample_values,
-//     // otu_ids, and labels (10 each).
-//     // sample[:10]
+function buildCharts(sample) {
+  var url = `/samples/${sample}`
+  // @TODO: Use `d3.json` to fetch the sample data for the plots
+  d3.json(url).then(function(response) {
+    arrSamplesAll = []
+    var value = response.sample_values
+    var id = response.otu_ids
+    var label = response.otu_labels
     
-//     // Create a empty list to store values
-//     var pieData = [];
+    for (i =0; i < value.length; i++){
+      arrSamplesAll.push({id: id[i], label: label[i], value: value[i]})
+    }
+    arrSamplesAll.sort(function(i, j){return j.value - i.value});
+    
+    var values = arrSamplesAll.map(sample => sample.value)
+    var labels = arrSamplesAll.map(sample => sample.label)
+    var ids = arrSamplesAll.map(sample => sample.id)
 
-//     // Loop to add dictionary values to empty list
-//     for (var i = 0; i < response.sample_values.length; i++) {
-//       pieData.push({otu_ids : response.otu_ids[i],
-//         otu_labels: response.otu_labels[i],
-//         sample_values: response.sample_values[i]
-//       })
-//     };
+    // @TODO: Build a Bubble Chart using the sample data
+    var scatterData = [{
+      "x": ids,
+      "y": values,
+      "mode": "markers",
+      "type": "scatter",
+      "ids":  ids,
+      "hovertext": labels,
+      "hoverinfo":"x+y+text",
+      "marker": {
+        "symbol": "circle",
+        "opacity": 0.6,
+        "size": values, 
+        "sizeref": 2,
+        "sizemin": 4,
+        "sizemode": "diameter",
+        "color": ids,
+        "colorscale": "Portland",
+        },
+    }]
 
-//     // Sort list to grab top ten sample values
-//     pieData.sort(function(a, b) {
-//       return parseFloat(b.sample_values) - parseFloat(a.sample_values);
-//     });
+    var scatterLayout = {
+      "xaxis": {
+        "visible": true,
+        "title": "OTU ID",
+        "color": "black",
+      }
+    }
+    Plotly.newPlot("bubble",scatterData, scatterLayout, {responsive: true})
 
-//     topTen = pieData.slice(0, 10);
+    // @TODO: Build a Pie Chart
+    // HINT: You will need to use slice() to grab the top 10 sample_values,
+    // otu_ids, and labels (10 each).
+    var pieData = [{
+      "values": values.slice(1,11),
+      "labels": ids.slice(1,11),
+      "name": "Belly Button Data",
+      "hovertext": labels.slice(1,11),
+      "hoverinfo": "label+text+value+percent",
+      "type": "pie",
+   }]
+   var pieLayout = {
 
-//     topTen = topTen.reverse();
+   }
+   Plotly.newPlot("pie", pieData, pieLayout, {responsive: true})
 
-//     console.log(topTen)
+  });
+}
 
-//     // create trace for pie chart
-//     var trace2 = {
-//       values: topTen.map(row => row.sample_values),
-//       labels: topTen.map(row => row.otu_ids),
-//       type: "pie",
-//       hoverinfo: topTen.map(row => row.otu_labels),
-//       textinfo: "percent"
-//     };
- 
-//     var data2 = [trace2];
+function init() {
+  // Grab a reference to the dropdown select element
+  var selector = d3.select("#selDataset");
 
-//     // plot pie chart in "pie" id
-//     Plotly.newPlot("pie", data2);
+  // Use the list of sample names to populate the select options
+  d3.json("/names").then((sampleNames) => {
+    sampleNames.forEach((sample) => {
+      selector
+        .append("option")
+        .text(sample)
+        .property("value", sample);
+    });
 
-//   });
+    // Use the first sample from the list to build the initial plots
+    const firstSample = sampleNames[0];
+    buildCharts(firstSample);
+    buildMetadata(firstSample);
+  });
+}
 
-// }
+function optionChanged(newSample) {
+  // Fetch new data each time a new sample is selected
+  buildCharts(newSample);
+  buildMetadata(newSample);
+}
 
-// function init() {
-//   // Grab a reference to the dropdown select element
-//   var selector = d3.select("#selDataset");
-
-//   // Use the list of sample names to populate the select options
-//   d3.json("/names").then((sampleNames) => {
-//     sampleNames.forEach((sample) => {
-//       selector
-//         .append("option")
-//         .text(sample)
-//         .property("value", sample);
-//     });
-
-//     // Use the first sample from the list to build the initial plots
-//     const firstSample = sampleNames[0];
-//     buildCharts(firstSample);
-//     buildMetadata(firstSample);
-//   });
-// }
-
-// function optionChanged(newSample) {
-//   // Fetch new data each time a new sample is selected
-//   buildCharts(newSample);
-//   buildMetadata(newSample);
-// }
-
-// // Initialize the dashboard
-// init();
+// Initialize the dashboard
+init();

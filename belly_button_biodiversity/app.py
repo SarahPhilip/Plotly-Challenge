@@ -18,8 +18,7 @@ app = Flask(__name__)
 # Database Setup
 #################################################
 
-# app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db/bellybutton.sqlite"
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '')
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db/bellybutton.sqlite"
 db = SQLAlchemy(app)
 
 # reflect an existing database into a new model
@@ -45,6 +44,7 @@ def names():
     # Use Pandas to perform the sql query
     stmt = db.session.query(Samples).statement
     df = pd.read_sql_query(stmt, db.session.bind)
+
     # Return a list of the column names (sample names)
     return jsonify(list(df.columns)[2:])
 
@@ -74,6 +74,7 @@ def sample_metadata(sample):
         sample_metadata["LOCATION"] = result[4]
         sample_metadata["BBTYPE"] = result[5]
         sample_metadata["WFREQ"] = result[6]
+
     print(sample_metadata)
     return jsonify(sample_metadata)
 
